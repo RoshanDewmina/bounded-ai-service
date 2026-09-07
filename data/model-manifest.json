@@ -1,0 +1,20 @@
+{
+  "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+  "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+  "license": "Apache-2.0",
+  "source_url": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct",
+  "runtime": "transformers CPU; safetensors; trust_remote_code=false",
+  "external_cost_usd": 0,
+  "limits": {
+    "max_new_tokens": 96,
+    "max_input_tokens": 1600,
+    "max_steps": 3,
+    "hard_generation_timeout_seconds": 15,
+    "process_call_cap": 100
+  },
+  "limitations": [
+    "Small model; failures must be reported",
+    "Weights downloaded separately; not redistributed in Git",
+    "Product inference model, not a build/review agent"
+  ]
+}
