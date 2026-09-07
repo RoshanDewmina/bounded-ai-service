@@ -55,6 +55,7 @@
       "limitations": [
         "No real-user study or hosted review workflow",
         "Development fixtures are authored human expectations, not held-out model evidence",
+        "The scorer compares the first typed tool call and overall stop, not full multi-step semantic correctness",
         "Fixture hashes are consistency checks, not signatures or reviewer identity proof",
         "Existing tiny-model quality measurements remain unchanged",
         "Agent-generated work; personal contribution and mastery pending"

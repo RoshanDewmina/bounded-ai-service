@@ -54,6 +54,7 @@
   ],
   "limitations": [
     "Synthetic local execution and authored feedback only",
+    "The scorer compares the first typed tool call and overall stop, not full multi-step semantic correctness",
     "Fixture hashes detect inconsistent edits; they are not signatures or proof of reviewer identity",
     "No external model was run and prior tiny-model quality results are unchanged",
     "No real users, remote service, hosted authentication or production reliability measurement",
