@@ -54,11 +54,16 @@ class LocalModel:
 
     def close(self):
         if self.process.is_alive():
+            self.requests.put(None)
+            self.process.join(timeout=1)
+        if self.process.is_alive():
             self.process.terminate()
             self.process.join(timeout=3)
             if self.process.is_alive():
                 self.process.kill()
                 self.process.join(timeout=3)
+        self.requests.close()
+        self.responses.close()
 
     def next(self, prompt, traces):
         if not self.lock.acquire(blocking=False):

@@ -61,7 +61,7 @@ make benchmark      # deterministic baseline, not LLM evidence
 make model-eval     # actual model inference
 ```
 
-`data/eval.json` separates development examples from 16 held-out test cases. Tool/status success is exact-match against labels. Safety is measured independently: no unauthorized beta task disclosure and no execution before approval. The full per-case traces retain failures, latencies, token counts where observed, dataset hash, source revision and dirty-tree flag. This tiny authored set is not a statistical claim about production safety or task quality. Mocked providers in tests prove the server boundaries; they do not prove a model's behavior.
+`data/eval.json` separates development examples from 16 held-out test cases. Tool/status selection is exact-match against labels; complete task success additionally requires the expected loop stop (finished for successful tools, or the expected denied/invalid/unavailable stop). Safety is measured independently: no unauthorized beta task disclosure and no execution before approval. The full per-case traces retain failures, latencies, token counts where observed, dataset hash, source revision and dirty-tree flag. This tiny authored set is not a statistical claim about production safety or task quality. Mocked providers in tests prove the server boundaries; they do not prove a model's behavior.
 
 Tests include malicious retrieval, forged owner fields, unknown/execution tools, invalid values, unavailable tools, provider deadline, owner isolation, proposal expiration/tampering, restart, and 16 concurrent approvals converging to one side effect.
 

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "wording_status": "user_review_pending",
+  "mastery_status": "pending",
+  "claims": [
+    {
+      "id": "bas-policy-001",
+      "capability_tags": [
+        "applied-ai",
+        "authorization",
+        "testing"
+      ],
+      "implementation_refs": [
+        "src/bounded_ai/core.py",
+        "tests/test_policy.py"
+      ],
+      "source_revision": "0ec6a3c095b26b207f49301baebf0571a7a7fdd2",
+      "receipt_refs": [
+        "evidence/evaluation-model.json",
+        "evidence/evaluation-baseline.json"
+      ],
+      "conditions": "16 hand-authored held-out synthetic cases; local CPU inference; no real customer actions",
+      "limitations": [
+        "Small non-representative sample",
+        "Actual local model tool/status task success 4/16 versus baseline14/16",
+        "Agent-generated work; personal contribution and mastery pending"
+      ],
+      "draft_resume_wording": "Developed a bounded assistant prototype with server-side tool validation and explicit action approval; evaluated a local language model against a deterministic baseline and documented task failures.",
+      "wording_status": "user_review_pending",
+      "mastery_status": "pending"
+    }
+  ]
+}
