@@ -270,6 +270,8 @@ def test_inspector_ui_renders_untrusted_feedback_as_text(tmp_path):
     assert '<option value="">Select explicitly…</option>' in page
     assert "state.authEpoch++;resetSelection()" in page
     assert "credential!==$('token').value" in page
+    assert "epoch!==state.authEpoch" in page
+    assert "resetFeedbackDraft()" in page
     injection='<img src=x onerror=alert(1)>'
     store=Store(tmp_path/'injection.sqlite')
     run=Assistant(store).run('alpha','Read alpha-task')

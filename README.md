@@ -22,7 +22,7 @@ make walkthrough
 # open docs/inspector.html through a static file server
 ```
 
-The static walkthrough renders exact synthetic receipts for a cross-owner denial and configured tool unavailability. `make walkthrough` regenerates them and replays both fixtures in isolated local databases. These are development regression cases, separate from the held-out evaluation split.
+The static walkthrough renders exact synthetic receipts for changed tool arguments and configured tool unavailability. `make walkthrough` regenerates them, reproduces both failing fixtures, and scores separate changed synthetic candidates. These are development regression cases, separate from the held-out evaluation split. Fixture hashes detect accidental or inconsistent edits; they are not signatures and do not establish author identity.
 
 `demo-alpha` and `demo-beta` are shared, synthetic local-demo credentials. They are not production authentication. Bind defaults to loopback. `PUBLIC_MODE=1` refuses those credentials; real deployment requires independently provisioned credentials via `ASSISTANT_TOKENS` JSON. Never embed private credentials in the UI.
 
