@@ -30,6 +30,38 @@
       "draft_resume_wording": "Developed a bounded assistant prototype with server-side tool validation and explicit action approval; evaluated a local language model against a deterministic baseline and documented task failures.",
       "wording_status": "user_review_pending",
       "mastery_status": "pending"
+    },
+    {
+      "id": "bas-inspector-002",
+      "capability_tags": [
+        "applied-ai",
+        "observability",
+        "human-feedback",
+        "regression-testing"
+      ],
+      "implementation_refs": [
+        "src/bounded_ai/core.py",
+        "src/bounded_ai/api.py",
+        "src/bounded_ai/regression.py",
+        "src/bounded_ai/index.html",
+        "tests/test_policy.py"
+      ],
+      "source_revision": "fe4c2e509c14010847997a817cbb102f30bf9b3d",
+      "receipt_refs": [
+        "evidence/workflow-inspector.json",
+        "docs/inspector-receipts.json"
+      ],
+      "conditions": "Synthetic local runs; deterministic replay; owner-scoped SQLite store; no external model API or action execution from inspection/export",
+      "limitations": [
+        "No real-user study or hosted review workflow",
+        "Development fixtures are authored human expectations, not held-out model evidence",
+        "Fixture hashes are consistency checks, not signatures or reviewer identity proof",
+        "Existing tiny-model quality measurements remain unchanged",
+        "Agent-generated work; personal contribution and mastery pending"
+      ],
+      "draft_resume_wording": "Built an agent run inspector that shows tool calls, permission failures and reviewer feedback; exported reviewed failures into reproducible regression cases.",
+      "wording_status": "user_review_pending",
+      "mastery_status": "pending"
     }
   ]
 }

@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "source_revision": "fe4c2e509c14010847997a817cbb102f30bf9b3d",
+  "dirty_tree": true,
+  "dirty_scope_at_verification": [
+    "evidence/claims.json pending source revision update",
+    "evidence/workflow-inspector.json pending creation",
+    ".playwright-cli temporary output pending removal"
+  ],
+  "command": "uv run pytest -q; semantic validation of docs/inspector-receipts.json; real local HTTP acceptance on 127.0.0.1:8112",
+  "timestamp": "2026-09-07T10:45:27Z",
+  "exit_status": 0,
+  "environment": {
+    "os": "macOS arm64",
+    "python": "CPython 3.13.5",
+    "http_origin": "http://127.0.0.1:8112"
+  },
+  "inputs": {
+    "held_out_eval_sha256": "85fa40401173f1d4b149a3b2a06ae6e08d860f3df57667f4e66d104de92c0ef8",
+    "walkthrough_receipt_sha256": "b88da15b4f7f38a1eb9d23ed1775b8a90a0e0a844dfce87a12bb8a5352fc3cb5",
+    "implementation_sha256": {
+      "src/bounded_ai/core.py": "dfd9a382e42895329a317517a7d3859c1c086bf2133214ac9219db466ab2ea50",
+      "src/bounded_ai/api.py": "cc96a6957200cc197b1cea27f7e969e5f24ed052b1b2577d891b0bdab0ab4955",
+      "src/bounded_ai/regression.py": "a79ec9b10a222290cc5f9852a685c480f7ecf961331447b68c724d6f75145b85",
+      "src/bounded_ai/index.html": "9141a2f44c3dd08b70ac2b56e247d55ccc771cff8330d067ce1698267a1b96c6",
+      "tests/test_policy.py": "d9d8c6931fb959a7fc1bed5b0dda099b637d25c987ce1c025efe3b2599c902fa"
+    }
+  },
+  "measured_results": {
+    "tests_passed": 25,
+    "tests_failed": 0,
+    "warnings": 2,
+    "walkthrough_cases": 2,
+    "walkthrough_failures_reproduced": 2,
+    "changed_synthetic_candidates_passed": 2,
+    "http_create_status": 200,
+    "http_matching_expectation_export_status": 409,
+    "http_mismatch_export_status": 200,
+    "http_cross_owner_inspection_status": 404,
+    "external_model_api_calls": 0,
+    "external_cost_usd": 0
+  },
+  "checks": [
+    "Recent-run listing and inspection use the authenticated owner predicate",
+    "Cross-owner run inspection returns 404 without disclosing the run",
+    "Credential changes clear selected run, approval, export and feedback state; stale responses check credential and auth epoch",
+    "Feedback verdict is an explicit selection and incorrect reviews require independent expected tool, status, arguments and stop reason",
+    "Expected behavior identical to the observation is rejected from failure export",
+    "Export embeds hashed run and feedback snapshots; replay rejects changed expectations or replay inputs",
+    "Sixteen concurrent exports converge to one fixture",
+    "Wrong owner, denial, unavailable and changed-argument outcomes fail or pass exact scoring as expected",
+    "Reviewer HTML injection text is preserved as data and rendered with textContent",
+    "Inspection and export do not approve proposals, retry tools or edit held-out labels"
+  ],
+  "limitations": [
+    "Synthetic local execution and authored feedback only",
+    "Fixture hashes detect inconsistent edits; they are not signatures or proof of reviewer identity",
+    "No external model was run and prior tiny-model quality results are unchanged",
+    "No real users, remote service, hosted authentication or production reliability measurement",
+    "Two dependency deprecation warnings remain in FastAPI TestClient dependencies",
+    "Receipt is committed after the implementation revision it identifies"
+  ]
+}
