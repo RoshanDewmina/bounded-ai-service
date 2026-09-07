@@ -1,0 +1,99 @@
+{
+  "source_revision": "47d8992bc43fd5c9d25272ef2d1e756968cca2e0",
+  "command": "docker build -t career-ai:review .; docker run --rm -p127.0.0.1:8312:8112 career-ai:review; HTTP baselineproposal/crossowner409/ownerapproval/replay/taskresult",
+  "exit_status": 0,
+  "environment": "macOS-27.0-arm64-arm-64bit",
+  "container": "LinuxARM64 Python3.12.14",
+  "health": {
+    "status": "ok",
+    "service": "bounded-ai-service",
+    "version": "0.1.0",
+    "model_available": false
+  },
+  "run": {
+    "run_id": "28e53d20-1b21-4de4-acce-10db04ba6950",
+    "provider": "deterministic-baseline",
+    "stop_reason": "finished",
+    "traces": [
+      {
+        "step": 1,
+        "call": {
+          "tool": "propose_import",
+          "arguments": {
+            "values": [
+              1.0,
+              2.0,
+              3.0
+            ]
+          }
+        },
+        "result": {
+          "tool": "propose_import",
+          "status": "ok",
+          "data": {
+            "proposal_id": "4c435b14-b686-4734-acdf-7130b4f0518f",
+            "action": {
+              "kind": "data_import",
+              "records": [
+                {
+                  "value": 1.0
+                },
+                {
+                  "value": 2.0
+                },
+                {
+                  "value": 3.0
+                }
+              ]
+            },
+            "approval_required": true
+          }
+        },
+        "usage": {}
+      },
+      {
+        "step": 2,
+        "call": {
+          "tool": "finish",
+          "arguments": {
+            "answer": "Inspect the verified tool result. Any proposed action requires your explicit approval."
+          }
+        },
+        "result": {
+          "tool": "finish",
+          "status": "ok",
+          "data": {
+            "answer": "Inspect the verified tool result. Any proposed action requires your explicit approval.",
+            "trust": "model_generated_unverified"
+          }
+        },
+        "usage": {}
+      }
+    ],
+    "latency_ms": 5.746,
+    "execution": "proposals_only_until_explicit_approval"
+  },
+  "approval": {
+    "workflow_id": "9417f12d-611d-4a9c-a0ce-b29660490546",
+    "replayed": false,
+    "execution": "synthetic_local"
+  },
+  "replay": {
+    "workflow_id": "9417f12d-611d-4a9c-a0ce-b29660490546",
+    "replayed": true,
+    "execution": "synthetic_local"
+  },
+  "task": {
+    "task_id": "9417f12d-611d-4a9c-a0ce-b29660490546",
+    "state": "succeeded",
+    "result": {
+      "sum": 6.0,
+      "count": 3
+    }
+  },
+  "limits": [
+    "Default image baseline only; actual model inference separately proven on macOS",
+    "Local disposable container, not public backend"
+  ],
+  "initial_probe_note": "Initial probe incorrectly asserted entire approval payload equality; replay flag intentionally differs. Corrected probe checks workflow identity and replay semantics."
+}
