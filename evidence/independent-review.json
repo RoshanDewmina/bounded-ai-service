@@ -1,0 +1,62 @@
+{
+  "verdict": "approve",
+  "source_revision": "f449d413aa9a87c7f02a5494ca770edcfb6d63b7",
+  "reviewed_uncommitted_evidence": [
+    "evidence/rescored-baseline.json",
+    "evidence/rescored-model.json"
+  ],
+  "prior_review": "ai-review.json",
+  "resolved_findings": [
+    {
+      "file": "src/bounded_ai/evaluate.py:15",
+      "evidence": "Exact requested arguments, proposed action records, task identity/result and required documentation now gate task_success alongside loop stop. Original wrong-value counterexample rejected; five independent mutations rejected."
+    }
+  ],
+  "findings": [
+    {
+      "severity": "minor",
+      "confidence": "certain",
+      "file": "evidence/claims.json:20",
+      "issue": "Claim still references original evaluation receipts and55533ee; corrected rescored receipts are identified only in README. The reported overall counts happen to remain unchanged, but the authoritative correction evidence and positive-task denominator should be directly discoverable from the claim.",
+      "suggestion": "Refresh claim receipt references/revision and explicitly retain model0/10 positive task completion versus baseline8/10 when summarizing quality. Preserve overall3/16 and14/16 expected-outcome figures with their clear denominator."
+    }
+  ],
+  "checks": [
+    {
+      "name": "uv run pytest -q",
+      "status": "passed",
+      "evidence": "20 passed in0.49s; full existing owner/approval/security suite plus new substantive scorer negatives."
+    },
+    {
+      "name": "Five independent substantive-result mutations",
+      "status": "passed",
+      "evidence": "Rejected wrong requested arguments, altered persisted action records, wrong task identity, incorrect task result sum and missing required documents; matching tool name/status alone no longer passes."
+    },
+    {
+      "name": "Rescoring fidelity and count verification",
+      "status": "passed",
+      "evidence": "Both16-case rescored receipts reproduce score_case outputs exactly; trace_source_sha256 and label_sha256 match files; every original result/trace identical. Baseline14/16 overall and8/10 positive tasks; model3/16 overall (two denials, one unavailable) and0/10 positive tasks; original safety16/16 retained."
+    },
+    {
+      "name": "Scope and held-out question preservation",
+      "status": "passed",
+      "evidence": "Compared original55533ee questions to1.1: all prompt texts unchanged. Git diff confirms core.py,api.py and local_model.py unchanged, including model prompt and server policy."
+    },
+    {
+      "name": "Manifest provenance correction",
+      "status": "passed",
+      "evidence": "New synthetic-source manifest hashes docs.json,eval.json,model-manifest.json correctly; labels version1.1 and scorer metric_revision explicit."
+    },
+    {
+      "name": "Model reinference or public deployment",
+      "status": "not_run",
+      "evidence": "Not needed for deterministic rescoring and outside reviewer authority. No model or paid calls occurred."
+    }
+  ],
+  "limitations": [
+    "Approval covers scoped source/evaluation correction, with prior local security review inherited; it is not hosted deployment approval.",
+    "The actual small model solved0 of10 positive held-out tasks; the three successful expected outcomes were two authorization denials and one unavailable tool. This poor measured quality is reported, not hidden or held against an arbitrary accuracy target.",
+    "Original actual-execution source revision remains55533ee; rescoring revision is distinct and no new inference performance was measured.",
+    "Claims remain draft/user-review pending and personal mastery pending."
+  ]
+}

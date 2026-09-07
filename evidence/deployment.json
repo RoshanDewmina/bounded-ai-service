@@ -1,0 +1,9 @@
+{
+  "status": "static_evidence_prepared",
+  "live_backend": false,
+  "provider": "GitHub Pages",
+  "url": "https://roshandewmina.github.io/bounded-ai-service/",
+  "external_cost_usd": 0,
+  "live_backend_blocker": "Available serverless hosting does not provide persistent SQLite worker state; no compatible owned durable hosting credential configured. No subscription started.",
+  "claims": "Static evidence walkthrough only; local backend independently reviewed"
+}
