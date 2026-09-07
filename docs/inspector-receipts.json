@@ -4,114 +4,275 @@
   "held_out_eval_sha256": "85fa40401173f1d4b149a3b2a06ae6e08d860f3df57667f4e66d104de92c0ef8",
   "cases": [
     {
-      "name": "cross-owner denial",
+      "name": "changed tool arguments",
       "inspection": {
         "run": {
-          "run_id": "25a7dbc4-4cd0-492a-a591-2449507b3a76",
-          "created_at": "2026-09-07T10:29:28.279100+00:00",
-          "prompt": "Read beta-task",
+          "run_id": "dd442f6f-95cd-4e41-91fe-7bf30ffa19cb",
+          "created_at": "2026-09-07T10:43:43.587772+00:00",
+          "prompt": "Import 1, 2, 3",
           "provider": "synthetic-walkthrough-fixture",
-          "stop_reason": "denied",
+          "stop_reason": "finished",
           "traces": [
             {
               "step": 1,
               "call": {
-                "tool": "get_task",
+                "tool": "propose_import",
                 "arguments": {
-                  "task_id": "beta-task"
+                  "values": [
+                    999
+                  ]
                 }
               },
               "result": {
-                "tool": "get_task",
-                "status": "denied",
+                "tool": "propose_import",
+                "status": "ok",
                 "data": {
-                  "error": "Task unavailable to this principal"
+                  "proposal_id": "cd497ecd-f714-4026-8957-562577b06dfb",
+                  "action": {
+                    "kind": "data_import",
+                    "records": [
+                      {
+                        "value": 999.0
+                      }
+                    ]
+                  },
+                  "approval_required": true
                 }
               },
               "usage": {},
-              "duration_ms": 1.899
+              "duration_ms": 0.724
+            },
+            {
+              "step": 2,
+              "call": {
+                "tool": "finish",
+                "arguments": {
+                  "answer": "done"
+                }
+              },
+              "result": {
+                "tool": "finish",
+                "status": "ok",
+                "data": {
+                  "answer": "done",
+                  "trust": "model_generated_unverified"
+                }
+              },
+              "usage": {},
+              "duration_ms": 0.021
             }
           ],
-          "latency_ms": 2.147,
+          "latency_ms": 0.964,
           "execution": "proposals_only_until_explicit_approval"
         },
         "steps": [
           {
             "step": 1,
             "call": {
-              "tool": "get_task",
+              "tool": "propose_import",
               "arguments": {
-                "task_id": "beta-task"
+                "values": [
+                  999
+                ]
               }
             },
             "policy_expectation": "A schema-valid, owner-authorized, available tool call returns status ok; every other outcome is explicit.",
             "observed": {
-              "tool": "get_task",
-              "status": "denied",
+              "tool": "propose_import",
+              "status": "ok",
               "data": {
-                "error": "Task unavailable to this principal"
+                "proposal_id": "cd497ecd-f714-4026-8957-562577b06dfb",
+                "action": {
+                  "kind": "data_import",
+                  "records": [
+                    {
+                      "value": 999.0
+                    }
+                  ]
+                },
+                "approval_required": true
               }
             },
             "outcome": {
-              "code": "owner_policy_denied",
-              "reason": "Task unavailable to this principal",
+              "code": "tool_result_verified",
+              "reason": "The server validated the call and recorded a typed tool result.",
               "basis": "stored server trace"
             },
-            "duration_ms": 1.899
+            "duration_ms": 0.724
+          },
+          {
+            "step": 2,
+            "call": {
+              "tool": "finish",
+              "arguments": {
+                "answer": "done"
+              }
+            },
+            "policy_expectation": "A schema-valid, owner-authorized, available tool call returns status ok; every other outcome is explicit.",
+            "observed": {
+              "tool": "finish",
+              "status": "ok",
+              "data": {
+                "answer": "done",
+                "trust": "model_generated_unverified"
+              }
+            },
+            "outcome": {
+              "code": "tool_result_verified",
+              "reason": "The server validated the call and recorded a typed tool result.",
+              "basis": "stored server trace"
+            },
+            "duration_ms": 0.021
           }
         ],
         "feedback": [
           {
-            "feedback_id": "e5d28e6e-2234-49fa-84f8-bb6f47b95162",
+            "feedback_id": "ffa92b4c-821b-43bd-8270-6dbf47150be0",
             "verdict": "incorrect",
-            "reason": "Expected denial is retained as a regression guard for cross-owner access.",
+            "reason": "The proposed values differ from the requested values.",
             "expected_behavior": {
               "arguments": {
-                "task_id": "beta-task"
+                "values": [
+                  1,
+                  2,
+                  3
+                ]
               },
-              "status": "denied",
-              "stop_reason": "denied",
-              "tool": "get_task"
+              "status": "ok",
+              "stop_reason": "finished",
+              "tool": "propose_import"
             },
-            "created_at": "2026-09-07T10:29:28.282229+00:00"
+            "created_at": "2026-09-07T10:43:43.589695+00:00"
           }
         ],
         "cause_boundary": "Reasons use stored calls, typed results, status codes and server errors. They do not infer a model's hidden reasoning or an unobserved root cause."
       },
       "feedback": {
-        "feedback_id": "e5d28e6e-2234-49fa-84f8-bb6f47b95162",
-        "run_id": "25a7dbc4-4cd0-492a-a591-2449507b3a76",
+        "feedback_id": "ffa92b4c-821b-43bd-8270-6dbf47150be0",
+        "run_id": "dd442f6f-95cd-4e41-91fe-7bf30ffa19cb",
         "verdict": "incorrect",
-        "reason": "Expected denial is retained as a regression guard for cross-owner access.",
+        "reason": "The proposed values differ from the requested values.",
         "expected_behavior": {
-          "tool": "get_task",
-          "status": "denied",
+          "tool": "propose_import",
+          "status": "ok",
           "arguments": {
-            "task_id": "beta-task"
+            "values": [
+              1,
+              2,
+              3
+            ]
           },
-          "stop_reason": "denied"
+          "stop_reason": "finished"
         },
-        "created_at": "2026-09-07T10:29:28.282229+00:00",
+        "created_at": "2026-09-07T10:43:43.589695+00:00",
         "immutable": true
       },
       "fixture": {
         "schema_version": 1,
-        "fixture_id": "0b6ae706-5e06-4188-a66a-a281cfd235e4",
+        "fixture_id": "aad39524-57ca-48e0-88f5-eb7837d66d3b",
         "split": "development_reviewed_failure",
         "source": {
-          "run_id": "25a7dbc4-4cd0-492a-a591-2449507b3a76",
-          "run_sha256": "0048d1948a089be98b49cfc7bd0b1e46acd823562a63f6ab51d25ce9437e7dc4",
-          "feedback_id": "e5d28e6e-2234-49fa-84f8-bb6f47b95162",
-          "feedback_sha256": "f1735a4c8927860fafb05ac2892318c71d65435de4f2fae7763edd8f15586a01"
+          "run_id": "dd442f6f-95cd-4e41-91fe-7bf30ffa19cb",
+          "run_sha256": "2d96e268240f4b61d4d2382d4130c653a587a0a9c4f2309700995d83e80b67bd",
+          "feedback_id": "ffa92b4c-821b-43bd-8270-6dbf47150be0",
+          "feedback_sha256": "df69a9a90638835a537bf8470cf0794613dc43dcade2afe3ee7d31f720f0580c"
+        },
+        "source_snapshot": {
+          "run": {
+            "run_id": "dd442f6f-95cd-4e41-91fe-7bf30ffa19cb",
+            "created_at": "2026-09-07T10:43:43.587772+00:00",
+            "prompt": "Import 1, 2, 3",
+            "provider": "synthetic-walkthrough-fixture",
+            "stop_reason": "finished",
+            "traces": [
+              {
+                "step": 1,
+                "call": {
+                  "tool": "propose_import",
+                  "arguments": {
+                    "values": [
+                      999
+                    ]
+                  }
+                },
+                "result": {
+                  "tool": "propose_import",
+                  "status": "ok",
+                  "data": {
+                    "proposal_id": "cd497ecd-f714-4026-8957-562577b06dfb",
+                    "action": {
+                      "kind": "data_import",
+                      "records": [
+                        {
+                          "value": 999.0
+                        }
+                      ]
+                    },
+                    "approval_required": true
+                  }
+                },
+                "usage": {},
+                "duration_ms": 0.724
+              },
+              {
+                "step": 2,
+                "call": {
+                  "tool": "finish",
+                  "arguments": {
+                    "answer": "done"
+                  }
+                },
+                "result": {
+                  "tool": "finish",
+                  "status": "ok",
+                  "data": {
+                    "answer": "done",
+                    "trust": "model_generated_unverified"
+                  }
+                },
+                "usage": {},
+                "duration_ms": 0.021
+              }
+            ],
+            "latency_ms": 0.964,
+            "execution": "proposals_only_until_explicit_approval"
+          },
+          "feedback": {
+            "id": "ffa92b4c-821b-43bd-8270-6dbf47150be0",
+            "run_id": "dd442f6f-95cd-4e41-91fe-7bf30ffa19cb",
+            "owner": "alpha",
+            "verdict": "incorrect",
+            "reason": "The proposed values differ from the requested values.",
+            "expected": {
+              "arguments": {
+                "values": [
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "status": "ok",
+              "stop_reason": "finished",
+              "tool": "propose_import"
+            }
+          }
         },
         "replay": {
           "owner": "alpha",
-          "prompt": "Read beta-task",
+          "prompt": "Import 1, 2, 3",
           "calls": [
             {
-              "tool": "get_task",
+              "tool": "propose_import",
               "arguments": {
-                "task_id": "beta-task"
+                "values": [
+                  999
+                ]
+              }
+            },
+            {
+              "tool": "finish",
+              "arguments": {
+                "answer": "done"
               }
             }
           ],
@@ -119,56 +280,99 @@
         },
         "expected": {
           "arguments": {
-            "task_id": "beta-task"
+            "values": [
+              1,
+              2,
+              3
+            ]
           },
-          "status": "denied",
-          "stop_reason": "denied",
-          "tool": "get_task"
+          "status": "ok",
+          "stop_reason": "finished",
+          "tool": "propose_import"
         },
-        "review_reason": "Expected denial is retained as a regression guard for cross-owner access.",
+        "review_reason": "The proposed values differ from the requested values.",
         "limitations": [
           "Synthetic local trace",
           "Development regression fixture; never part of held-out evaluation",
           "Export records evidence and does not retry or approve an action"
         ]
       },
-      "replay": {
-        "fixture_id": "0b6ae706-5e06-4188-a66a-a281cfd235e4",
+      "replay_before_change": {
+        "fixture_id": "aad39524-57ca-48e0-88f5-eb7837d66d3b",
+        "passed": false,
+        "checks": {
+          "tool": true,
+          "status": true,
+          "stop_reason": true,
+          "arguments": false
+        },
+        "result": {
+          "run_id": "3924d036-e8c9-42c8-ba23-925aed83daaa",
+          "created_at": "2026-09-07T10:43:43.607240+00:00",
+          "prompt": "Import 1, 2, 3",
+          "provider": "reviewed-regression-fixture",
+          "stop_reason": "finished",
+          "traces": [
+            {
+              "step": 1,
+              "call": {
+                "tool": "propose_import",
+                "arguments": {
+                  "values": [
+                    999
+                  ]
+                }
+              },
+              "result": {
+                "tool": "propose_import",
+                "status": "ok",
+                "data": {
+                  "proposal_id": "69183662-dad9-4c8c-8a28-17fd3d58ca71",
+                  "action": {
+                    "kind": "data_import",
+                    "records": [
+                      {
+                        "value": 999.0
+                      }
+                    ]
+                  },
+                  "approval_required": true
+                }
+              },
+              "usage": {},
+              "duration_ms": 0.617
+            },
+            {
+              "step": 2,
+              "call": {
+                "tool": "finish",
+                "arguments": {
+                  "answer": "done"
+                }
+              },
+              "result": {
+                "tool": "finish",
+                "status": "ok",
+                "data": {
+                  "answer": "done",
+                  "trust": "model_generated_unverified"
+                }
+              },
+              "usage": {},
+              "duration_ms": 0.018
+            }
+          ],
+          "latency_ms": 0.663,
+          "execution": "proposals_only_until_explicit_approval"
+        }
+      },
+      "candidate_after_change": {
         "passed": true,
         "checks": {
           "tool": true,
           "status": true,
           "stop_reason": true,
           "arguments": true
-        },
-        "result": {
-          "run_id": "2fc86d16-bc93-4530-bffc-5528ebec5c18",
-          "created_at": "2026-09-07T10:29:28.292473+00:00",
-          "prompt": "Read beta-task",
-          "provider": "reviewed-regression-fixture",
-          "stop_reason": "denied",
-          "traces": [
-            {
-              "step": 1,
-              "call": {
-                "tool": "get_task",
-                "arguments": {
-                  "task_id": "beta-task"
-                }
-              },
-              "result": {
-                "tool": "get_task",
-                "status": "denied",
-                "data": {
-                  "error": "Task unavailable to this principal"
-                }
-              },
-              "usage": {},
-              "duration_ms": 0.408
-            }
-          ],
-          "latency_ms": 0.44,
-          "execution": "proposals_only_until_explicit_approval"
         }
       }
     },
@@ -176,8 +380,8 @@
       "name": "configured tool unavailable",
       "inspection": {
         "run": {
-          "run_id": "97fef430-d6c3-4b61-844a-11cb14edb882",
-          "created_at": "2026-09-07T10:29:28.284497+00:00",
+          "run_id": "8a0fbd99-df46-446d-b365-7b32fc2ff607",
+          "created_at": "2026-09-07T10:43:43.595152+00:00",
           "prompt": "Read alpha-task",
           "provider": "synthetic-walkthrough-fixture",
           "stop_reason": "unavailable",
@@ -198,10 +402,10 @@
                 }
               },
               "usage": {},
-              "duration_ms": 0.054
+              "duration_ms": 0.011
             }
           ],
-          "latency_ms": 0.087,
+          "latency_ms": 0.025,
           "execution": "proposals_only_until_explicit_approval"
         },
         "steps": [
@@ -226,52 +430,98 @@
               "reason": "Tool unavailable; no action performed",
               "basis": "stored server trace"
             },
-            "duration_ms": 0.054
+            "duration_ms": 0.011
           }
         ],
         "feedback": [
           {
-            "feedback_id": "ef30cfd5-5e36-4825-a633-0c01c4d09e55",
+            "feedback_id": "157392bb-c4ba-4e52-a878-9c7b521a81f0",
             "verdict": "incorrect",
-            "reason": "Expected unavailable result is retained without retrying the tool.",
+            "reason": "The owner task should have been available.",
             "expected_behavior": {
               "arguments": {
                 "task_id": "alpha-task"
               },
-              "status": "unavailable",
-              "stop_reason": "unavailable",
+              "status": "ok",
+              "stop_reason": "finished",
               "tool": "get_task"
             },
-            "created_at": "2026-09-07T10:29:28.285663+00:00"
+            "created_at": "2026-09-07T10:43:43.595935+00:00"
           }
         ],
         "cause_boundary": "Reasons use stored calls, typed results, status codes and server errors. They do not infer a model's hidden reasoning or an unobserved root cause."
       },
       "feedback": {
-        "feedback_id": "ef30cfd5-5e36-4825-a633-0c01c4d09e55",
-        "run_id": "97fef430-d6c3-4b61-844a-11cb14edb882",
+        "feedback_id": "157392bb-c4ba-4e52-a878-9c7b521a81f0",
+        "run_id": "8a0fbd99-df46-446d-b365-7b32fc2ff607",
         "verdict": "incorrect",
-        "reason": "Expected unavailable result is retained without retrying the tool.",
+        "reason": "The owner task should have been available.",
         "expected_behavior": {
           "tool": "get_task",
-          "status": "unavailable",
+          "status": "ok",
           "arguments": {
             "task_id": "alpha-task"
           },
-          "stop_reason": "unavailable"
+          "stop_reason": "finished"
         },
-        "created_at": "2026-09-07T10:29:28.285663+00:00",
+        "created_at": "2026-09-07T10:43:43.595935+00:00",
         "immutable": true
       },
       "fixture": {
         "schema_version": 1,
-        "fixture_id": "ab36ae05-41da-4f51-a5e7-44129a9a4f4f",
+        "fixture_id": "170edf70-aed5-4bf2-8dfc-f1b8c28e759d",
         "split": "development_reviewed_failure",
         "source": {
-          "run_id": "97fef430-d6c3-4b61-844a-11cb14edb882",
-          "run_sha256": "27262cea86b65200335f1d77c493a7c76353b78ff629806742e1e546d5c49d50",
-          "feedback_id": "ef30cfd5-5e36-4825-a633-0c01c4d09e55",
-          "feedback_sha256": "774ca1c961b2b997f3efabd2b83551d3ed27fb83d3d6b58850a79ca6be1a1687"
+          "run_id": "8a0fbd99-df46-446d-b365-7b32fc2ff607",
+          "run_sha256": "3d4feeae015a6704a158eabbf35d1682b814ad55f1ad036f47bd1583c730abed",
+          "feedback_id": "157392bb-c4ba-4e52-a878-9c7b521a81f0",
+          "feedback_sha256": "ac2a8b9a8d1f3be37345a6b26d188fe76006065574b5e0b78a630f1b30d2fc22"
+        },
+        "source_snapshot": {
+          "run": {
+            "run_id": "8a0fbd99-df46-446d-b365-7b32fc2ff607",
+            "created_at": "2026-09-07T10:43:43.595152+00:00",
+            "prompt": "Read alpha-task",
+            "provider": "synthetic-walkthrough-fixture",
+            "stop_reason": "unavailable",
+            "traces": [
+              {
+                "step": 1,
+                "call": {
+                  "tool": "get_task",
+                  "arguments": {
+                    "task_id": "alpha-task"
+                  }
+                },
+                "result": {
+                  "tool": "get_task",
+                  "status": "unavailable",
+                  "data": {
+                    "error": "Tool unavailable; no action performed"
+                  }
+                },
+                "usage": {},
+                "duration_ms": 0.011
+              }
+            ],
+            "latency_ms": 0.025,
+            "execution": "proposals_only_until_explicit_approval"
+          },
+          "feedback": {
+            "id": "157392bb-c4ba-4e52-a878-9c7b521a81f0",
+            "run_id": "8a0fbd99-df46-446d-b365-7b32fc2ff607",
+            "owner": "alpha",
+            "verdict": "incorrect",
+            "reason": "The owner task should have been available.",
+            "expected": {
+              "arguments": {
+                "task_id": "alpha-task"
+              },
+              "status": "ok",
+              "stop_reason": "finished",
+              "tool": "get_task"
+            }
+          }
         },
         "replay": {
           "owner": "alpha",
@@ -292,29 +542,29 @@
           "arguments": {
             "task_id": "alpha-task"
           },
-          "status": "unavailable",
-          "stop_reason": "unavailable",
+          "status": "ok",
+          "stop_reason": "finished",
           "tool": "get_task"
         },
-        "review_reason": "Expected unavailable result is retained without retrying the tool.",
+        "review_reason": "The owner task should have been available.",
         "limitations": [
           "Synthetic local trace",
           "Development regression fixture; never part of held-out evaluation",
           "Export records evidence and does not retry or approve an action"
         ]
       },
-      "replay": {
-        "fixture_id": "ab36ae05-41da-4f51-a5e7-44129a9a4f4f",
-        "passed": true,
+      "replay_before_change": {
+        "fixture_id": "170edf70-aed5-4bf2-8dfc-f1b8c28e759d",
+        "passed": false,
         "checks": {
           "tool": true,
-          "status": true,
-          "stop_reason": true,
+          "status": false,
+          "stop_reason": false,
           "arguments": true
         },
         "result": {
-          "run_id": "03b27232-2fde-4551-8020-c0151cc3c277",
-          "created_at": "2026-09-07T10:29:28.297631+00:00",
+          "run_id": "6feb0394-d2b7-4419-aba4-b0969dfe5bab",
+          "created_at": "2026-09-07T10:43:43.616078+00:00",
           "prompt": "Read alpha-task",
           "provider": "reviewed-regression-fixture",
           "stop_reason": "unavailable",
@@ -335,11 +585,20 @@
                 }
               },
               "usage": {},
-              "duration_ms": 0.028
+              "duration_ms": 0.029
             }
           ],
-          "latency_ms": 0.061,
+          "latency_ms": 0.063,
           "execution": "proposals_only_until_explicit_approval"
+        }
+      },
+      "candidate_after_change": {
+        "passed": true,
+        "checks": {
+          "tool": true,
+          "status": true,
+          "stop_reason": true,
+          "arguments": true
         }
       }
     }

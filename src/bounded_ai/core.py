@@ -211,6 +211,7 @@ class Store:
     def export_regression(self, owner, run_id, feedback_id):
         run=self.get_run(owner,run_id)
         with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
             review=db.execute("SELECT * FROM run_feedback WHERE id=? AND run_id=? AND owner=?",(feedback_id,run_id,owner)).fetchone()
             if review is None:
                 raise PolicyError("Feedback provenance unavailable to this principal")
@@ -220,14 +221,25 @@ class Store:
             if previous:
                 return json.loads(previous[0])
             expected=json.loads(review["expected"])
+            first=next((trace for trace in run["traces"] if "result" in trace),{})
+            observed={
+                "tool":first.get("result",{}).get("tool"),
+                "status":first.get("result",{}).get("status"),
+                "arguments":first.get("call",{}).get("arguments"),
+                "stop_reason":run.get("stop_reason"),
+            }
+            if expected==observed:
+                raise PolicyError("Expected behavior matches the observed run; mark it correct or record a real mismatch")
             calls=[t["call"] for t in run["traces"] if "call" in t]
             unavailable=sorted({t["result"]["tool"] for t in run["traces"] if t.get("result",{}).get("status")=="unavailable"})
             fixture_id=str(uuid.uuid4())
             run_blob=json.dumps(run,sort_keys=True,separators=(",",":"))
-            feedback_blob=json.dumps({"id":review["id"],"verdict":review["verdict"],"reason":review["reason"],"expected":expected},sort_keys=True,separators=(",",":"))
+            feedback_record={"id":review["id"],"run_id":run_id,"owner":owner,"verdict":review["verdict"],"reason":review["reason"],"expected":expected}
+            feedback_blob=json.dumps(feedback_record,sort_keys=True,separators=(",",":"))
             fixture={
                 "schema_version":1,"fixture_id":fixture_id,"split":"development_reviewed_failure",
                 "source":{"run_id":run_id,"run_sha256":hashlib.sha256(run_blob.encode()).hexdigest(),"feedback_id":feedback_id,"feedback_sha256":hashlib.sha256(feedback_blob.encode()).hexdigest()},
+                "source_snapshot":{"run":run,"feedback":feedback_record},
                 "replay":{"owner":owner,"prompt":run.get("prompt", ""),"calls":calls,"unavailable":unavailable},
                 "expected":expected,"review_reason":review["reason"],
                 "limitations":["Synthetic local trace","Development regression fixture; never part of held-out evaluation","Export records evidence and does not retry or approve an action"],

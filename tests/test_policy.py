@@ -1,5 +1,4 @@
 import concurrent.futures
-import copy
 import json
 import time
 from pathlib import Path
@@ -181,39 +180,86 @@ def test_feedback_and_export_require_owned_failure_provenance(tmp_path):
         correct=c.post(f"/runs/{run['run_id']}/feedback",json={"verdict":"correct","reason":"The denial matches policy"},headers=alpha).json()
         denied=c.post(f"/runs/{run['run_id']}/regression-fixtures",json={'feedback_id':correct['feedback_id']},headers=alpha)
         assert denied.status_code==409
-        review=c.post(f"/runs/{run['run_id']}/feedback",json={
-            "verdict":"incorrect","reason":"Review expects a denial for this cross-owner request",
+        matching=c.post(f"/runs/{run['run_id']}/feedback",json={
+            "verdict":"incorrect","reason":"This expectation improperly matches the observation",
             "expected_tool":"get_task","expected_status":"denied",
             "expected_arguments":{"task_id":"beta-task"},"expected_stop_reason":"denied"
+        },headers=alpha).json()
+        assert c.post(f"/runs/{run['run_id']}/regression-fixtures",json={'feedback_id':matching['feedback_id']},headers=alpha).status_code==409
+        review=c.post(f"/runs/{run['run_id']}/feedback",json={
+            "verdict":"incorrect","reason":"The requested owner task should have succeeded",
+            "expected_tool":"get_task","expected_status":"ok",
+            "expected_arguments":{"task_id":"alpha-task"},"expected_stop_reason":"finished"
         },headers=alpha).json()
         assert review['immutable'] is True
         assert c.post(f"/runs/{run['run_id']}/regression-fixtures",json={'feedback_id':review['feedback_id']},headers=beta).status_code==409
         fixture=c.post(f"/runs/{run['run_id']}/regression-fixtures",json={'feedback_id':review['feedback_id']},headers=alpha).json()
         assert fixture['split']=='development_reviewed_failure'
         assert fixture['source']['run_id']==run['run_id']
-        assert fixture['expected']['arguments']=={'task_id':'beta-task'}
+        assert fixture['expected']['arguments']=={'task_id':'alpha-task'}
         assert c.post(f"/runs/{run['run_id']}/regression-fixtures",json={'feedback_id':review['feedback_id']},headers=alpha).json()==fixture
 
 
 def test_regression_replay_scores_denial_changed_args_and_unavailable(store,tmp_path):
     denial=Assistant(store,Scripted([{'tool':'get_task','arguments':{'task_id':'beta-task'}}])).run('alpha','Read beta-task')
-    review=store.add_feedback('alpha',denial['run_id'],'incorrect','Expected owner denial',{
-        'tool':'get_task','status':'denied','arguments':{'task_id':'beta-task'},'stop_reason':'denied'
+    review=store.add_feedback('alpha',denial['run_id'],'incorrect','Expected the owned task instead',{
+        'tool':'get_task','status':'ok','arguments':{'task_id':'alpha-task'},'stop_reason':'finished'
     })
     fixture=store.export_regression('alpha',denial['run_id'],review['feedback_id'])
-    assert replay_fixture(fixture,tmp_path/'denial.sqlite')['passed']
-    changed=copy.deepcopy(fixture)
-    changed['replay']['calls'][0]['arguments']['task_id']='alpha-task'
-    changed_result=replay_fixture(changed,tmp_path/'changed.sqlite')
-    assert not changed_result['passed']
-    assert changed_result['checks']=={'tool':True,'status':False,'stop_reason':False,'arguments':False}
+    before=replay_fixture(fixture,tmp_path/'denial.sqlite')
+    assert not before['passed']
+    corrected=Assistant(Store(tmp_path/'owner-corrected.sqlite'),Scripted([
+        {'tool':'get_task','arguments':{'task_id':'alpha-task'}},
+        {'tool':'finish','arguments':{'answer':'done'}}
+    ])).run('alpha','Read beta-task')
+    assert score_regression(fixture,corrected)['passed']
+
+    wrong_args=Assistant(store,Scripted([
+        {'tool':'propose_import','arguments':{'values':[999]}},
+        {'tool':'finish','arguments':{'answer':'done'}}
+    ])).run('alpha','Import 1,2,3')
+    args_review=store.add_feedback('alpha',wrong_args['run_id'],'incorrect','Proposed values differ from the request',{
+        'tool':'propose_import','status':'ok','arguments':{'values':[1,2,3]},'stop_reason':'finished'
+    })
+    args_fixture=store.export_regression('alpha',wrong_args['run_id'],args_review['feedback_id'])
+    args_before=replay_fixture(args_fixture,tmp_path/'args-before.sqlite')
+    assert not args_before['passed'] and args_before['checks']['arguments'] is False
+    corrected_args=Assistant(Store(tmp_path/'args-corrected.sqlite'),Scripted([
+        {'tool':'propose_import','arguments':{'values':[1,2,3]}},
+        {'tool':'finish','arguments':{'answer':'done'}}
+    ])).run('alpha','Import 1,2,3')
+    assert score_regression(args_fixture,corrected_args)['passed']
 
     unavailable=Assistant(store,Scripted([{'tool':'get_task','arguments':{'task_id':'alpha-task'}}]),unavailable=['get_task']).run('alpha','Read alpha-task')
-    unavailable_review=store.add_feedback('alpha',unavailable['run_id'],'incorrect','Expected configured unavailability',{
-        'tool':'get_task','status':'unavailable','arguments':{'task_id':'alpha-task'},'stop_reason':'unavailable'
+    unavailable_review=store.add_feedback('alpha',unavailable['run_id'],'incorrect','Expected the available owner task',{
+        'tool':'get_task','status':'ok','arguments':{'task_id':'alpha-task'},'stop_reason':'finished'
     })
     unavailable_fixture=store.export_regression('alpha',unavailable['run_id'],unavailable_review['feedback_id'])
-    assert replay_fixture(unavailable_fixture,tmp_path/'unavailable.sqlite')['passed']
+    assert not replay_fixture(unavailable_fixture,tmp_path/'unavailable.sqlite')['passed']
+    available=Assistant(Store(tmp_path/'available.sqlite'),Scripted([
+        {'tool':'get_task','arguments':{'task_id':'alpha-task'}},
+        {'tool':'finish','arguments':{'answer':'done'}}
+    ])).run('alpha','Read alpha-task')
+    assert score_regression(unavailable_fixture,available)['passed']
+
+    tampered=json.loads(json.dumps(args_fixture))
+    tampered['expected']['arguments']={'values':[999]}
+    with pytest.raises(ValueError,match='immutable feedback'):
+        replay_fixture(tampered,tmp_path/'tampered.sqlite')
+
+
+def test_concurrent_regression_export_is_idempotent(store):
+    run=Assistant(store,Scripted([{'tool':'get_task','arguments':{'task_id':'beta-task'}}])).run('alpha','Read beta-task')
+    review=store.add_feedback('alpha',run['run_id'],'incorrect','Expected the owner task',{
+        'tool':'get_task','status':'ok','arguments':{'task_id':'alpha-task'},'stop_reason':'finished'
+    })
+    def export(_):
+        return Store(store.path).export_regression('alpha',run['run_id'],review['feedback_id'])
+    with concurrent.futures.ThreadPoolExecutor(8) as pool:
+        fixtures=list(pool.map(export,range(16)))
+    assert len({fixture['fixture_id'] for fixture in fixtures})==1
+    with store.connect() as db:
+        assert db.execute('SELECT count(*) FROM regression_fixtures').fetchone()[0]==1
 
 
 def test_inspector_ui_renders_untrusted_feedback_as_text(tmp_path):
@@ -221,6 +267,9 @@ def test_inspector_ui_renders_untrusted_feedback_as_text(tmp_path):
     assert 'innerHTML' not in page
     assert '.textContent' in page
     assert 'replaceChildren' in page
+    assert '<option value="">Select explicitly…</option>' in page
+    assert "state.authEpoch++;resetSelection()" in page
+    assert "credential!==$('token').value" in page
     injection='<img src=x onerror=alert(1)>'
     store=Store(tmp_path/'injection.sqlite')
     run=Assistant(store).run('alpha','Read alpha-task')

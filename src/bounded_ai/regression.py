@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import json
 import tempfile
 from pathlib import Path
@@ -16,7 +17,40 @@ class RecordedCalls:
         return next(self.calls, {"tool":"finish","arguments":{"answer":"Recorded regression calls complete."}}), {}
 
 
+def _canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+
+def validate_fixture(fixture):
+    if fixture.get("split") != "development_reviewed_failure":
+        raise ValueError("Only development reviewed-failure fixtures are supported")
+    source=fixture.get("source",{})
+    snapshot=fixture.get("source_snapshot",{})
+    run=snapshot.get("run")
+    feedback=snapshot.get("feedback")
+    if not isinstance(run,dict) or not isinstance(feedback,dict):
+        raise ValueError("Fixture is missing immutable source snapshots")
+    if hashlib.sha256(_canonical(run).encode()).hexdigest()!=source.get("run_sha256"):
+        raise ValueError("Run provenance hash mismatch")
+    if hashlib.sha256(_canonical(feedback).encode()).hexdigest()!=source.get("feedback_sha256"):
+        raise ValueError("Feedback provenance hash mismatch")
+    if source.get("run_id")!=run.get("run_id") or source.get("feedback_id")!=feedback.get("id"):
+        raise ValueError("Fixture provenance identity mismatch")
+    if feedback.get("run_id")!=run.get("run_id") or feedback.get("verdict")!="incorrect":
+        raise ValueError("Fixture is not linked to an incorrect review of this run")
+    if fixture.get("expected")!=feedback.get("expected"):
+        raise ValueError("Expected behavior differs from immutable feedback")
+    expected_replay={
+        "owner":feedback.get("owner"),"prompt":run.get("prompt", ""),
+        "calls":[trace["call"] for trace in run.get("traces",[]) if "call" in trace],
+        "unavailable":sorted({trace["result"]["tool"] for trace in run.get("traces",[]) if trace.get("result",{}).get("status")=="unavailable"}),
+    }
+    if fixture.get("replay")!=expected_replay:
+        raise ValueError("Replay inputs differ from immutable run evidence")
+
+
 def score_regression(fixture, result):
+    validate_fixture(fixture)
     expected = fixture["expected"]
     first = next((trace for trace in result["traces"] if "result" in trace), {})
     observed = first.get("result", {})
@@ -31,8 +65,7 @@ def score_regression(fixture, result):
 
 
 def replay_fixture(fixture, database):
-    if fixture.get("split") != "development_reviewed_failure":
-        raise ValueError("Only development reviewed-failure fixtures can be replayed")
+    validate_fixture(fixture)
     replay = fixture["replay"]
     if not replay.get("calls"):
         raise ValueError("Fixture has no recorded tool calls")

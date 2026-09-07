@@ -29,8 +29,8 @@ class FeedbackRequest(BaseModel):
 
     @model_validator(mode="after")
     def reviewed_failure_has_expectation(self):
-        if self.verdict == "incorrect" and (self.expected_tool is None or self.expected_status is None or self.expected_stop_reason is None):
-            raise ValueError("Incorrect feedback requires expected tool, status, and stop reason")
+        if self.verdict == "incorrect" and (self.expected_tool is None or self.expected_status is None or self.expected_arguments is None or self.expected_stop_reason is None):
+            raise ValueError("Incorrect feedback requires expected tool, status, arguments, and stop reason")
         return self
 
     def expectation(self):

@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 
 from .core import Assistant, ROOT, Store
-from .regression import replay_fixture
+from .regression import replay_fixture, score_regression
 
 
 class Calls:
@@ -26,21 +26,32 @@ def main():
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         store = Store(root / "walkthrough.sqlite")
-        denied = Assistant(store, Calls([{"tool":"get_task","arguments":{"task_id":"beta-task"}}])).run("alpha", "Read beta-task")
-        denied_review, denied_fixture = reviewed_fixture(store, denied, "Expected denial is retained as a regression guard for cross-owner access.", {
-            "tool":"get_task","status":"denied","arguments":{"task_id":"beta-task"},"stop_reason":"denied"
+        wrong_args = Assistant(store, Calls([
+            {"tool":"propose_import","arguments":{"values":[999]}},
+            {"tool":"finish","arguments":{"answer":"done"}},
+        ])).run("alpha", "Import 1, 2, 3")
+        args_review, args_fixture = reviewed_fixture(store, wrong_args, "The proposed values differ from the requested values.", {
+            "tool":"propose_import","status":"ok","arguments":{"values":[1,2,3]},"stop_reason":"finished"
         })
+        corrected_args = Assistant(Store(root/"corrected-args.sqlite"), Calls([
+            {"tool":"propose_import","arguments":{"values":[1,2,3]}},
+            {"tool":"finish","arguments":{"answer":"done"}},
+        ])).run("alpha", "Import 1, 2, 3")
         unavailable = Assistant(store, Calls([{"tool":"get_task","arguments":{"task_id":"alpha-task"}}]), unavailable=["get_task"]).run("alpha", "Read alpha-task")
-        unavailable_review, unavailable_fixture = reviewed_fixture(store, unavailable, "Expected unavailable result is retained without retrying the tool.", {
-            "tool":"get_task","status":"unavailable","arguments":{"task_id":"alpha-task"},"stop_reason":"unavailable"
+        unavailable_review, unavailable_fixture = reviewed_fixture(store, unavailable, "The owner task should have been available.", {
+            "tool":"get_task","status":"ok","arguments":{"task_id":"alpha-task"},"stop_reason":"finished"
         })
+        available = Assistant(Store(root/"available.sqlite"), Calls([
+            {"tool":"get_task","arguments":{"task_id":"alpha-task"}},
+            {"tool":"finish","arguments":{"answer":"done"}},
+        ])).run("alpha", "Read alpha-task")
         receipt = {
             "schema_version":1,
             "title":"Synthetic workflow-inspector walkthrough",
             "held_out_eval_sha256":hashlib.sha256((ROOT/"data/eval.json").read_bytes()).hexdigest(),
             "cases":[
-                {"name":"cross-owner denial","inspection":store.inspect_run("alpha",denied["run_id"]),"feedback":denied_review,"fixture":denied_fixture,"replay":replay_fixture(denied_fixture,root/"denied-replay.sqlite")},
-                {"name":"configured tool unavailable","inspection":store.inspect_run("alpha",unavailable["run_id"]),"feedback":unavailable_review,"fixture":unavailable_fixture,"replay":replay_fixture(unavailable_fixture,root/"unavailable-replay.sqlite")},
+                {"name":"changed tool arguments","inspection":store.inspect_run("alpha",wrong_args["run_id"]),"feedback":args_review,"fixture":args_fixture,"replay_before_change":replay_fixture(args_fixture,root/"args-replay.sqlite"),"candidate_after_change":score_regression(args_fixture,corrected_args)},
+                {"name":"configured tool unavailable","inspection":store.inspect_run("alpha",unavailable["run_id"]),"feedback":unavailable_review,"fixture":unavailable_fixture,"replay_before_change":replay_fixture(unavailable_fixture,root/"unavailable-replay.sqlite"),"candidate_after_change":score_regression(unavailable_fixture,available)},
             ],
             "limitations":["Exact synthetic local receipts","No model or external API called","No approval, action execution or automatic retry","Development fixtures do not modify held-out evaluation data"],
         }
