@@ -130,3 +130,22 @@ def test_run_and_task_http_owner_boundary(tmp_path):
 def test_public_mode_rejects_shared_demo_secrets(tmp_path,monkeypatch):
     monkeypatch.setenv('PUBLIC_MODE','1')
     with pytest.raises(ValueError): create_app(tmp_path/'db')
+
+
+def test_task_scorer_rejects_wrong_payload_and_wrong_task(store):
+    from bounded_ai.evaluate import score_case
+    case={'expected_tool':'propose_import','expected_status':'ok','expected_arguments':{'values':[1,2,3]}}
+    r=Assistant(store,Scripted([{'tool':'propose_import','arguments':{'values':[999]}},{'tool':'finish','arguments':{'answer':'done'}}])).run('alpha','Import 1,2,3')
+    assert score_case(case,r)=={'task_success':False,'tool_selection_success':True}
+    r['traces'][0]['call']['arguments']={'values':[1,2,3]}
+    assert not score_case(case,r)['task_success']
+    r['traces'][0]['result']['data']['action']['records']=[{'value':1},{'value':2},{'value':3}]
+    assert score_case(case,r)['task_success']
+
+
+def test_task_scorer_rejects_irrelevant_docs(store):
+    from bounded_ai.evaluate import score_case
+    case={'expected_tool':'search_docs','expected_status':'ok','required_document_ids':['not-returned']}
+    r=Assistant(store).run('alpha','How does approval work?')
+    assert score_case(case,r)['tool_selection_success']
+    assert not score_case(case,r)['task_success']

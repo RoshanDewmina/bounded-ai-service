@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-09-07T03:38:49.517041+00:00",
+  "source_revision": "55533ee8c47173d8a9c69f09a3019a8b5c45737a",
+  "command": "Playwright CLI actual Chromium UI; native browser interaction",
+  "exit_status": 0,
+  "checks": [
+    {
+      "name": "create import proposal",
+      "status": "passed",
+      "evidence": "Entered1,2,3; proposal displayed exact records; no task executed before approval"
+    },
+    {
+      "name": "explicit approval",
+      "status": "passed",
+      "evidence": "Clicked approve; synthetic workflow receipt displayed; screenshot ui-approved.png"
+    },
+    {
+      "name": "cross-owner access",
+      "status": "passed",
+      "evidence": "Read beta-task using demo-alpha returned denied; no beta state exposed"
+    }
+  ],
+  "limitations": [
+    "Desktop viewport inspected; mobile not yet checked",
+    "Baseline UI path exercised; model measured separately",
+    "One missing favicon404, no application JS errors"
+  ]
+}

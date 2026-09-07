@@ -14,7 +14,7 @@
         "src/bounded_ai/core.py",
         "tests/test_policy.py"
       ],
-      "source_revision": "0ec6a3c095b26b207f49301baebf0571a7a7fdd2",
+      "source_revision": "55533ee8c47173d8a9c69f09a3019a8b5c45737a",
       "receipt_refs": [
         "evidence/evaluation-model.json",
         "evidence/evaluation-baseline.json"
@@ -22,7 +22,7 @@
       "conditions": "16 hand-authored held-out synthetic cases; local CPU inference; no real customer actions",
       "limitations": [
         "Small non-representative sample",
-        "Actual local model tool/status task success 4/16 versus baseline14/16",
+        "Complete held-out task success3/16 (tool selection4/16), versus baseline14/16",
         "Agent-generated work; personal contribution and mastery pending"
       ],
       "draft_resume_wording": "Developed a bounded assistant prototype with server-side tool validation and explicit action approval; evaluated a local language model against a deterministic baseline and documented task failures.",

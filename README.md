@@ -76,3 +76,7 @@ Public demo publication status is recorded in `evidence/deployment.json` when at
 Original code, authored synthetic documentation and evaluation fixtures: MIT (`LICENSE`). Model weights: [Apache-2.0, official model card](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct); downloaded separately, never bundled in Git. FastAPI MIT, uv MIT/Apache-2.0, Transformers Apache-2.0, PyTorch BSD-style. Exact packages are locked in `uv.lock`.
 
 Framework references consulted: [FastAPI lifespan tests](https://fastapi.tiangolo.com/advanced/testing-events/), [Transformers generation](https://huggingface.co/docs/transformers/main_classes/text_generation), and the pinned model card. See `docs/interview-guide.md` for exercises. Draft claims are pending user wording approval and demonstrated understanding.
+
+### Independent-review correction
+
+The initial scorer checked tool name/status but not the requested values or task identity. Review demonstrated a wrong-value proposal could score as successful. `score_case` now verifies exact proposed records, task identity/result and required documentation IDs as well as the expected stop. `uv run python3 -m bounded_ai.rescore` rescores the preserved real execution traces under versioned1.1 labels. `evidence/rescored-*.json` is the current result; original receipts are retained. No model prompts were tuned to the held-out set.

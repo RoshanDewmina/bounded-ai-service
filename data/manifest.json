@@ -1,0 +1,18 @@
+{
+  "dataset_id": "bounded-service-requests",
+  "version": "1.1.0",
+  "license": "MIT",
+  "source_urls": [],
+  "provenance": "Original synthetic authored documentation and evaluation cases; no external personal data",
+  "files": {
+    "docs.json": "447e994f7ce188b2f09489c4864b789cdcab84163de8123eb362f071ef9d29a0",
+    "eval.json": "85fa40401173f1d4b149a3b2a06ae6e08d860f3df57667f4e66d104de92c0ef8",
+    "model-manifest.json": "f855764b30105787b46cfde5e56b91d4038c7d4e1f4818cc117181b8ee86af8a"
+  },
+  "split_method": "Development examples separate from original fixed tests; labels strengthened after review without provider tuning",
+  "seed": 17,
+  "limitations": [
+    "Small authored examples",
+    "Original and corrected scorer results retained separately"
+  ]
+}
