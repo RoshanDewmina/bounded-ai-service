@@ -1,0 +1,353 @@
+{
+  "schema_version": 1,
+  "title": "Synthetic workflow-inspector walkthrough",
+  "held_out_eval_sha256": "85fa40401173f1d4b149a3b2a06ae6e08d860f3df57667f4e66d104de92c0ef8",
+  "cases": [
+    {
+      "name": "cross-owner denial",
+      "inspection": {
+        "run": {
+          "run_id": "25a7dbc4-4cd0-492a-a591-2449507b3a76",
+          "created_at": "2026-09-07T10:29:28.279100+00:00",
+          "prompt": "Read beta-task",
+          "provider": "synthetic-walkthrough-fixture",
+          "stop_reason": "denied",
+          "traces": [
+            {
+              "step": 1,
+              "call": {
+                "tool": "get_task",
+                "arguments": {
+                  "task_id": "beta-task"
+                }
+              },
+              "result": {
+                "tool": "get_task",
+                "status": "denied",
+                "data": {
+                  "error": "Task unavailable to this principal"
+                }
+              },
+              "usage": {},
+              "duration_ms": 1.899
+            }
+          ],
+          "latency_ms": 2.147,
+          "execution": "proposals_only_until_explicit_approval"
+        },
+        "steps": [
+          {
+            "step": 1,
+            "call": {
+              "tool": "get_task",
+              "arguments": {
+                "task_id": "beta-task"
+              }
+            },
+            "policy_expectation": "A schema-valid, owner-authorized, available tool call returns status ok; every other outcome is explicit.",
+            "observed": {
+              "tool": "get_task",
+              "status": "denied",
+              "data": {
+                "error": "Task unavailable to this principal"
+              }
+            },
+            "outcome": {
+              "code": "owner_policy_denied",
+              "reason": "Task unavailable to this principal",
+              "basis": "stored server trace"
+            },
+            "duration_ms": 1.899
+          }
+        ],
+        "feedback": [
+          {
+            "feedback_id": "e5d28e6e-2234-49fa-84f8-bb6f47b95162",
+            "verdict": "incorrect",
+            "reason": "Expected denial is retained as a regression guard for cross-owner access.",
+            "expected_behavior": {
+              "arguments": {
+                "task_id": "beta-task"
+              },
+              "status": "denied",
+              "stop_reason": "denied",
+              "tool": "get_task"
+            },
+            "created_at": "2026-09-07T10:29:28.282229+00:00"
+          }
+        ],
+        "cause_boundary": "Reasons use stored calls, typed results, status codes and server errors. They do not infer a model's hidden reasoning or an unobserved root cause."
+      },
+      "feedback": {
+        "feedback_id": "e5d28e6e-2234-49fa-84f8-bb6f47b95162",
+        "run_id": "25a7dbc4-4cd0-492a-a591-2449507b3a76",
+        "verdict": "incorrect",
+        "reason": "Expected denial is retained as a regression guard for cross-owner access.",
+        "expected_behavior": {
+          "tool": "get_task",
+          "status": "denied",
+          "arguments": {
+            "task_id": "beta-task"
+          },
+          "stop_reason": "denied"
+        },
+        "created_at": "2026-09-07T10:29:28.282229+00:00",
+        "immutable": true
+      },
+      "fixture": {
+        "schema_version": 1,
+        "fixture_id": "0b6ae706-5e06-4188-a66a-a281cfd235e4",
+        "split": "development_reviewed_failure",
+        "source": {
+          "run_id": "25a7dbc4-4cd0-492a-a591-2449507b3a76",
+          "run_sha256": "0048d1948a089be98b49cfc7bd0b1e46acd823562a63f6ab51d25ce9437e7dc4",
+          "feedback_id": "e5d28e6e-2234-49fa-84f8-bb6f47b95162",
+          "feedback_sha256": "f1735a4c8927860fafb05ac2892318c71d65435de4f2fae7763edd8f15586a01"
+        },
+        "replay": {
+          "owner": "alpha",
+          "prompt": "Read beta-task",
+          "calls": [
+            {
+              "tool": "get_task",
+              "arguments": {
+                "task_id": "beta-task"
+              }
+            }
+          ],
+          "unavailable": []
+        },
+        "expected": {
+          "arguments": {
+            "task_id": "beta-task"
+          },
+          "status": "denied",
+          "stop_reason": "denied",
+          "tool": "get_task"
+        },
+        "review_reason": "Expected denial is retained as a regression guard for cross-owner access.",
+        "limitations": [
+          "Synthetic local trace",
+          "Development regression fixture; never part of held-out evaluation",
+          "Export records evidence and does not retry or approve an action"
+        ]
+      },
+      "replay": {
+        "fixture_id": "0b6ae706-5e06-4188-a66a-a281cfd235e4",
+        "passed": true,
+        "checks": {
+          "tool": true,
+          "status": true,
+          "stop_reason": true,
+          "arguments": true
+        },
+        "result": {
+          "run_id": "2fc86d16-bc93-4530-bffc-5528ebec5c18",
+          "created_at": "2026-09-07T10:29:28.292473+00:00",
+          "prompt": "Read beta-task",
+          "provider": "reviewed-regression-fixture",
+          "stop_reason": "denied",
+          "traces": [
+            {
+              "step": 1,
+              "call": {
+                "tool": "get_task",
+                "arguments": {
+                  "task_id": "beta-task"
+                }
+              },
+              "result": {
+                "tool": "get_task",
+                "status": "denied",
+                "data": {
+                  "error": "Task unavailable to this principal"
+                }
+              },
+              "usage": {},
+              "duration_ms": 0.408
+            }
+          ],
+          "latency_ms": 0.44,
+          "execution": "proposals_only_until_explicit_approval"
+        }
+      }
+    },
+    {
+      "name": "configured tool unavailable",
+      "inspection": {
+        "run": {
+          "run_id": "97fef430-d6c3-4b61-844a-11cb14edb882",
+          "created_at": "2026-09-07T10:29:28.284497+00:00",
+          "prompt": "Read alpha-task",
+          "provider": "synthetic-walkthrough-fixture",
+          "stop_reason": "unavailable",
+          "traces": [
+            {
+              "step": 1,
+              "call": {
+                "tool": "get_task",
+                "arguments": {
+                  "task_id": "alpha-task"
+                }
+              },
+              "result": {
+                "tool": "get_task",
+                "status": "unavailable",
+                "data": {
+                  "error": "Tool unavailable; no action performed"
+                }
+              },
+              "usage": {},
+              "duration_ms": 0.054
+            }
+          ],
+          "latency_ms": 0.087,
+          "execution": "proposals_only_until_explicit_approval"
+        },
+        "steps": [
+          {
+            "step": 1,
+            "call": {
+              "tool": "get_task",
+              "arguments": {
+                "task_id": "alpha-task"
+              }
+            },
+            "policy_expectation": "A schema-valid, owner-authorized, available tool call returns status ok; every other outcome is explicit.",
+            "observed": {
+              "tool": "get_task",
+              "status": "unavailable",
+              "data": {
+                "error": "Tool unavailable; no action performed"
+              }
+            },
+            "outcome": {
+              "code": "tool_unavailable",
+              "reason": "Tool unavailable; no action performed",
+              "basis": "stored server trace"
+            },
+            "duration_ms": 0.054
+          }
+        ],
+        "feedback": [
+          {
+            "feedback_id": "ef30cfd5-5e36-4825-a633-0c01c4d09e55",
+            "verdict": "incorrect",
+            "reason": "Expected unavailable result is retained without retrying the tool.",
+            "expected_behavior": {
+              "arguments": {
+                "task_id": "alpha-task"
+              },
+              "status": "unavailable",
+              "stop_reason": "unavailable",
+              "tool": "get_task"
+            },
+            "created_at": "2026-09-07T10:29:28.285663+00:00"
+          }
+        ],
+        "cause_boundary": "Reasons use stored calls, typed results, status codes and server errors. They do not infer a model's hidden reasoning or an unobserved root cause."
+      },
+      "feedback": {
+        "feedback_id": "ef30cfd5-5e36-4825-a633-0c01c4d09e55",
+        "run_id": "97fef430-d6c3-4b61-844a-11cb14edb882",
+        "verdict": "incorrect",
+        "reason": "Expected unavailable result is retained without retrying the tool.",
+        "expected_behavior": {
+          "tool": "get_task",
+          "status": "unavailable",
+          "arguments": {
+            "task_id": "alpha-task"
+          },
+          "stop_reason": "unavailable"
+        },
+        "created_at": "2026-09-07T10:29:28.285663+00:00",
+        "immutable": true
+      },
+      "fixture": {
+        "schema_version": 1,
+        "fixture_id": "ab36ae05-41da-4f51-a5e7-44129a9a4f4f",
+        "split": "development_reviewed_failure",
+        "source": {
+          "run_id": "97fef430-d6c3-4b61-844a-11cb14edb882",
+          "run_sha256": "27262cea86b65200335f1d77c493a7c76353b78ff629806742e1e546d5c49d50",
+          "feedback_id": "ef30cfd5-5e36-4825-a633-0c01c4d09e55",
+          "feedback_sha256": "774ca1c961b2b997f3efabd2b83551d3ed27fb83d3d6b58850a79ca6be1a1687"
+        },
+        "replay": {
+          "owner": "alpha",
+          "prompt": "Read alpha-task",
+          "calls": [
+            {
+              "tool": "get_task",
+              "arguments": {
+                "task_id": "alpha-task"
+              }
+            }
+          ],
+          "unavailable": [
+            "get_task"
+          ]
+        },
+        "expected": {
+          "arguments": {
+            "task_id": "alpha-task"
+          },
+          "status": "unavailable",
+          "stop_reason": "unavailable",
+          "tool": "get_task"
+        },
+        "review_reason": "Expected unavailable result is retained without retrying the tool.",
+        "limitations": [
+          "Synthetic local trace",
+          "Development regression fixture; never part of held-out evaluation",
+          "Export records evidence and does not retry or approve an action"
+        ]
+      },
+      "replay": {
+        "fixture_id": "ab36ae05-41da-4f51-a5e7-44129a9a4f4f",
+        "passed": true,
+        "checks": {
+          "tool": true,
+          "status": true,
+          "stop_reason": true,
+          "arguments": true
+        },
+        "result": {
+          "run_id": "03b27232-2fde-4551-8020-c0151cc3c277",
+          "created_at": "2026-09-07T10:29:28.297631+00:00",
+          "prompt": "Read alpha-task",
+          "provider": "reviewed-regression-fixture",
+          "stop_reason": "unavailable",
+          "traces": [
+            {
+              "step": 1,
+              "call": {
+                "tool": "get_task",
+                "arguments": {
+                  "task_id": "alpha-task"
+                }
+              },
+              "result": {
+                "tool": "get_task",
+                "status": "unavailable",
+                "data": {
+                  "error": "Tool unavailable; no action performed"
+                }
+              },
+              "usage": {},
+              "duration_ms": 0.028
+            }
+          ],
+          "latency_ms": 0.061,
+          "execution": "proposals_only_until_explicit_approval"
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "Exact synthetic local receipts",
+    "No model or external API called",
+    "No approval, action execution or automatic retry",
+    "Development fixtures do not modify held-out evaluation data"
+  ]
+}

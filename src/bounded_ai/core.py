@@ -5,6 +5,7 @@ import re
 import sqlite3
 import time
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
@@ -66,7 +67,24 @@ class Store:
             CREATE TABLE IF NOT EXISTS proposals(id TEXT PRIMARY KEY,owner TEXT NOT NULL,payload TEXT NOT NULL,digest TEXT NOT NULL,created REAL NOT NULL);
             CREATE TABLE IF NOT EXISTS approvals(proposal_id TEXT PRIMARY KEY,owner TEXT NOT NULL,workflow_id TEXT NOT NULL UNIQUE,approved REAL NOT NULL);
             CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY,owner TEXT NOT NULL,response TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS run_feedback(
+                id TEXT PRIMARY KEY, run_id TEXT NOT NULL, owner TEXT NOT NULL,
+                verdict TEXT NOT NULL CHECK(verdict IN ('correct','incorrect')),
+                reason TEXT NOT NULL, expected TEXT NOT NULL, created REAL NOT NULL,
+                FOREIGN KEY(run_id) REFERENCES runs(id)
+            );
+            CREATE TABLE IF NOT EXISTS regression_fixtures(
+                id TEXT PRIMARY KEY, feedback_id TEXT NOT NULL UNIQUE, run_id TEXT NOT NULL,
+                owner TEXT NOT NULL, fixture TEXT NOT NULL, created REAL NOT NULL,
+                FOREIGN KEY(feedback_id) REFERENCES run_feedback(id),
+                FOREIGN KEY(run_id) REFERENCES runs(id)
+            );
+            CREATE INDEX IF NOT EXISTS run_owner_feedback ON run_feedback(owner,run_id,created);
+            CREATE INDEX IF NOT EXISTS run_owner_created ON runs(owner,id);
             ''')
+            columns = {row[1] for row in db.execute("PRAGMA table_info(runs)")}
+            if "created" not in columns:
+                db.execute("ALTER TABLE runs ADD COLUMN created REAL NOT NULL DEFAULT 0")
             db.execute("INSERT OR IGNORE INTO tasks VALUES ('alpha-task','alpha','succeeded','{\"sum\":6}')")
             db.execute("INSERT OR IGNORE INTO tasks VALUES ('beta-task','beta','failed','null')")
 
@@ -116,7 +134,7 @@ class Store:
         with self.connect() as db:
             if db.execute("SELECT count(*) FROM runs").fetchone()[0] >= 1000:
                 raise PolicyError("Demo trace capacity reached")
-            db.execute("INSERT INTO runs VALUES (?,?,?)", (response["run_id"], owner, json.dumps(response)))
+            db.execute("INSERT INTO runs(id,owner,response,created) VALUES (?,?,?,?)", (response["run_id"], owner, json.dumps(response), time.time()))
 
     def get_run(self, owner, run_id):
         with self.connect() as db:
@@ -124,6 +142,99 @@ class Store:
         if not row:
             raise PolicyError("Run unavailable to this principal")
         return json.loads(row[0])
+
+    def list_runs(self, owner, limit=20):
+        with self.connect() as db:
+            rows = db.execute('''
+                SELECT r.response,r.created,f.verdict,f.reason
+                FROM runs r
+                LEFT JOIN run_feedback f ON f.id=(
+                    SELECT id FROM run_feedback WHERE run_id=r.id AND owner=r.owner
+                    ORDER BY created DESC,id DESC LIMIT 1
+                )
+                WHERE r.owner=? ORDER BY r.created DESC,r.id DESC LIMIT ?
+            ''', (owner, limit)).fetchall()
+        summaries=[]
+        for row in rows:
+            run=json.loads(row["response"])
+            summaries.append({
+                "run_id":run["run_id"], "provider":run["provider"],
+                "stop_reason":run["stop_reason"], "latency_ms":run["latency_ms"],
+                "step_count":len(run["traces"]),
+                "created_at":run.get("created_at") or datetime.fromtimestamp(row["created"],timezone.utc).isoformat(),
+                "feedback":None if row["verdict"] is None else {"verdict":row["verdict"],"reason":row["reason"]},
+            })
+        return summaries
+
+    @staticmethod
+    def _step_inspection(trace):
+        result=trace.get("result")
+        if result is None:
+            return {
+                "step":trace.get("step"), "call":None,
+                "policy_expectation":"Provider returns a typed tool call before the deadline.",
+                "observed":{"provider_error":trace.get("error","unknown")},
+                "outcome":{"code":"provider_error_observed","reason":"The recorded provider exception type is the only available cause; no deeper cause is inferred."},
+                "duration_ms":trace.get("duration_ms"),
+            }
+        status=result["status"]
+        reasons={
+            "ok":("tool_result_verified","The server validated the call and recorded a typed tool result."),
+            "denied":("owner_policy_denied",result.get("data",{}).get("error","The owner-scoped policy denied the call.")),
+            "invalid":("tool_schema_rejected",result.get("data",{}).get("error","The server rejected the tool schema.")),
+            "unavailable":("tool_unavailable",result.get("data",{}).get("error","The configured tool was unavailable.")),
+        }
+        code,reason=reasons[status]
+        return {
+            "step":trace.get("step"), "call":trace.get("call"),
+            "policy_expectation":"A schema-valid, owner-authorized, available tool call returns status ok; every other outcome is explicit.",
+            "observed":{"tool":result.get("tool"),"status":status,"data":result.get("data",{})},
+            "outcome":{"code":code,"reason":reason,"basis":"stored server trace"},
+            "duration_ms":trace.get("duration_ms"),
+        }
+
+    def inspect_run(self, owner, run_id):
+        run=self.get_run(owner,run_id)
+        with self.connect() as db:
+            rows=db.execute("SELECT id,verdict,reason,expected,created FROM run_feedback WHERE run_id=? AND owner=? ORDER BY created,id",(run_id,owner)).fetchall()
+        feedback=[{"feedback_id":r["id"],"verdict":r["verdict"],"reason":r["reason"],"expected_behavior":json.loads(r["expected"]),"created_at":datetime.fromtimestamp(r["created"],timezone.utc).isoformat()} for r in rows]
+        return {"run":run,"steps":[self._step_inspection(t) for t in run["traces"]],"feedback":feedback,"cause_boundary":"Reasons use stored calls, typed results, status codes and server errors. They do not infer a model's hidden reasoning or an unobserved root cause."}
+
+    def add_feedback(self, owner, run_id, verdict, reason, expected):
+        self.get_run(owner,run_id)
+        feedback_id=str(uuid.uuid4())
+        created=time.time()
+        with self.connect() as db:
+            db.execute("INSERT INTO run_feedback VALUES (?,?,?,?,?,?,?)",(feedback_id,run_id,owner,verdict,reason,json.dumps(expected,sort_keys=True,separators=(",",":")),created))
+        return {"feedback_id":feedback_id,"run_id":run_id,"verdict":verdict,"reason":reason,"expected_behavior":expected,"created_at":datetime.fromtimestamp(created,timezone.utc).isoformat(),"immutable":True}
+
+    def export_regression(self, owner, run_id, feedback_id):
+        run=self.get_run(owner,run_id)
+        with self.connect() as db:
+            review=db.execute("SELECT * FROM run_feedback WHERE id=? AND run_id=? AND owner=?",(feedback_id,run_id,owner)).fetchone()
+            if review is None:
+                raise PolicyError("Feedback provenance unavailable to this principal")
+            if review["verdict"]!="incorrect":
+                raise PolicyError("Only reviewed failures can be exported")
+            previous=db.execute("SELECT fixture FROM regression_fixtures WHERE feedback_id=? AND owner=?",(feedback_id,owner)).fetchone()
+            if previous:
+                return json.loads(previous[0])
+            expected=json.loads(review["expected"])
+            calls=[t["call"] for t in run["traces"] if "call" in t]
+            unavailable=sorted({t["result"]["tool"] for t in run["traces"] if t.get("result",{}).get("status")=="unavailable"})
+            fixture_id=str(uuid.uuid4())
+            run_blob=json.dumps(run,sort_keys=True,separators=(",",":"))
+            feedback_blob=json.dumps({"id":review["id"],"verdict":review["verdict"],"reason":review["reason"],"expected":expected},sort_keys=True,separators=(",",":"))
+            fixture={
+                "schema_version":1,"fixture_id":fixture_id,"split":"development_reviewed_failure",
+                "source":{"run_id":run_id,"run_sha256":hashlib.sha256(run_blob.encode()).hexdigest(),"feedback_id":feedback_id,"feedback_sha256":hashlib.sha256(feedback_blob.encode()).hexdigest()},
+                "replay":{"owner":owner,"prompt":run.get("prompt", ""),"calls":calls,"unavailable":unavailable},
+                "expected":expected,"review_reason":review["reason"],
+                "limitations":["Synthetic local trace","Development regression fixture; never part of held-out evaluation","Export records evidence and does not retry or approve an action"],
+            }
+            blob=json.dumps(fixture,sort_keys=True,separators=(",",":"))
+            db.execute("INSERT INTO regression_fixtures VALUES (?,?,?,?,?,?)",(fixture_id,feedback_id,run_id,owner,blob,time.time()))
+        return fixture
 
 
 class Baseline:
@@ -172,6 +283,7 @@ class Assistant:
 
     def run(self, owner, prompt):
         started = time.monotonic()
+        created_at = datetime.now(timezone.utc).isoformat()
         traces = []
         stop = "step_limit"
         for index in range(self.max_steps):
@@ -179,6 +291,7 @@ class Assistant:
                 stop = "deadline"
                 break
             try:
+                step_started=time.monotonic()
                 raw, usage = self.provider.next(prompt, traces)
                 if time.monotonic() - started >= self.timeout:
                     stop = "deadline"
@@ -189,14 +302,14 @@ class Assistant:
                     result = ToolResult(tool=str(raw.get("tool", "unknown")), status="denied", data={"error": str(exc)})
                 except (ValidationError, TypeError, ValueError) as exc:
                     result = ToolResult(tool=str(raw.get("tool", "unknown")), status="invalid", data={"error": "Tool schema rejected"})
-                traces.append({"step": index + 1, "call": raw, "result": result.model_dump(), "usage": usage})
+                traces.append({"step": index + 1, "call": raw, "result": result.model_dump(), "usage": usage, "duration_ms":round((time.monotonic()-step_started)*1000,3)})
                 if result.status != "ok" or result.tool == "finish":
                     stop = result.status if result.status != "ok" else "finished"
                     break
             except (TimeoutError, RuntimeError, ValueError, OSError) as exc:
                 stop = "provider_unavailable"
-                traces.append({"step": index + 1, "error": type(exc).__name__})
+                traces.append({"step": index + 1, "error": type(exc).__name__, "duration_ms":round((time.monotonic()-step_started)*1000,3)})
                 break
-        response = {"run_id": str(uuid.uuid4()), "provider": self.provider.name, "stop_reason": stop, "traces": traces, "latency_ms": round((time.monotonic() - started) * 1000, 3), "execution": "proposals_only_until_explicit_approval"}
+        response = {"run_id": str(uuid.uuid4()), "created_at":created_at, "prompt":prompt, "provider": self.provider.name, "stop_reason": stop, "traces": traces, "latency_ms": round((time.monotonic() - started) * 1000, 3), "execution": "proposals_only_until_explicit_approval"}
         self.store.save_run(owner, response)
         return response

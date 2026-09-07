@@ -1,4 +1,4 @@
-.PHONY: setup test demo benchmark model-demo model-eval
+.PHONY: setup test demo benchmark model-demo model-eval walkthrough
 setup:
 	uv sync --frozen
 test:
@@ -11,3 +11,5 @@ model-demo:
 	LOAD_LOCAL_MODEL=1 uv run --extra model python3 -m bounded_ai.api
 model-eval:
 	uv run --extra model python3 -m bounded_ai.evaluate --provider model
+walkthrough:
+	uv run python3 -m bounded_ai.walkthrough

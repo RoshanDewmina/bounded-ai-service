@@ -1,12 +1,15 @@
 import concurrent.futures
+import copy
 import json
 import time
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
 from bounded_ai.api import create_app
 from bounded_ai.core import Assistant, PolicyError, Store
+from bounded_ai.regression import replay_fixture, score_regression
 
 
 @pytest.fixture
@@ -149,3 +152,78 @@ def test_task_scorer_rejects_irrelevant_docs(store):
     r=Assistant(store).run('alpha','How does approval work?')
     assert score_case(case,r)['tool_selection_success']
     assert not score_case(case,r)['task_success']
+
+
+def test_recent_runs_and_inspection_are_owner_scoped(tmp_path):
+    with TestClient(create_app(tmp_path/'db')) as c:
+        alpha={'Authorization':'Bearer demo-alpha'}
+        beta={'Authorization':'Bearer demo-beta'}
+        first=c.post('/runs',json={'prompt':'Read alpha-task'},headers=alpha).json()
+        second=c.post('/runs',json={'prompt':'Read beta-task'},headers=beta).json()
+        listed=c.get('/runs?limit=10',headers=alpha).json()
+        assert [row['run_id'] for row in listed['runs']]==[first['run_id']]
+        assert listed['scope']=='authenticated_owner'
+        assert c.get('/runs/'+second['run_id']+'/inspection',headers=alpha).status_code==404
+        inspection=c.get('/runs/'+first['run_id']+'/inspection',headers=alpha).json()
+        assert inspection['steps'][0]['observed']['status']=='ok'
+        assert inspection['steps'][0]['outcome']['basis']=='stored server trace'
+        assert 'do not infer' in inspection['cause_boundary']
+        assert inspection['run']['created_at'] and inspection['run']['prompt']=='Read alpha-task'
+
+
+def test_feedback_and_export_require_owned_failure_provenance(tmp_path):
+    with TestClient(create_app(tmp_path/'db')) as c:
+        alpha={'Authorization':'Bearer demo-alpha'}
+        beta={'Authorization':'Bearer demo-beta'}
+        run=c.post('/runs',json={'prompt':'Read beta-task'},headers=alpha).json()
+        bad={"verdict":"incorrect","reason":"Expected an explicit owner denial"}
+        assert c.post(f"/runs/{run['run_id']}/feedback",json=bad,headers=alpha).status_code==422
+        correct=c.post(f"/runs/{run['run_id']}/feedback",json={"verdict":"correct","reason":"The denial matches policy"},headers=alpha).json()
+        denied=c.post(f"/runs/{run['run_id']}/regression-fixtures",json={'feedback_id':correct['feedback_id']},headers=alpha)
+        assert denied.status_code==409
+        review=c.post(f"/runs/{run['run_id']}/feedback",json={
+            "verdict":"incorrect","reason":"Review expects a denial for this cross-owner request",
+            "expected_tool":"get_task","expected_status":"denied",
+            "expected_arguments":{"task_id":"beta-task"},"expected_stop_reason":"denied"
+        },headers=alpha).json()
+        assert review['immutable'] is True
+        assert c.post(f"/runs/{run['run_id']}/regression-fixtures",json={'feedback_id':review['feedback_id']},headers=beta).status_code==409
+        fixture=c.post(f"/runs/{run['run_id']}/regression-fixtures",json={'feedback_id':review['feedback_id']},headers=alpha).json()
+        assert fixture['split']=='development_reviewed_failure'
+        assert fixture['source']['run_id']==run['run_id']
+        assert fixture['expected']['arguments']=={'task_id':'beta-task'}
+        assert c.post(f"/runs/{run['run_id']}/regression-fixtures",json={'feedback_id':review['feedback_id']},headers=alpha).json()==fixture
+
+
+def test_regression_replay_scores_denial_changed_args_and_unavailable(store,tmp_path):
+    denial=Assistant(store,Scripted([{'tool':'get_task','arguments':{'task_id':'beta-task'}}])).run('alpha','Read beta-task')
+    review=store.add_feedback('alpha',denial['run_id'],'incorrect','Expected owner denial',{
+        'tool':'get_task','status':'denied','arguments':{'task_id':'beta-task'},'stop_reason':'denied'
+    })
+    fixture=store.export_regression('alpha',denial['run_id'],review['feedback_id'])
+    assert replay_fixture(fixture,tmp_path/'denial.sqlite')['passed']
+    changed=copy.deepcopy(fixture)
+    changed['replay']['calls'][0]['arguments']['task_id']='alpha-task'
+    changed_result=replay_fixture(changed,tmp_path/'changed.sqlite')
+    assert not changed_result['passed']
+    assert changed_result['checks']=={'tool':True,'status':False,'stop_reason':False,'arguments':False}
+
+    unavailable=Assistant(store,Scripted([{'tool':'get_task','arguments':{'task_id':'alpha-task'}}]),unavailable=['get_task']).run('alpha','Read alpha-task')
+    unavailable_review=store.add_feedback('alpha',unavailable['run_id'],'incorrect','Expected configured unavailability',{
+        'tool':'get_task','status':'unavailable','arguments':{'task_id':'alpha-task'},'stop_reason':'unavailable'
+    })
+    unavailable_fixture=store.export_regression('alpha',unavailable['run_id'],unavailable_review['feedback_id'])
+    assert replay_fixture(unavailable_fixture,tmp_path/'unavailable.sqlite')['passed']
+
+
+def test_inspector_ui_renders_untrusted_feedback_as_text(tmp_path):
+    page=(Path(__file__).parents[1]/'src/bounded_ai/index.html').read_text()
+    assert 'innerHTML' not in page
+    assert '.textContent' in page
+    assert 'replaceChildren' in page
+    injection='<img src=x onerror=alert(1)>'
+    store=Store(tmp_path/'injection.sqlite')
+    run=Assistant(store).run('alpha','Read alpha-task')
+    review=store.add_feedback('alpha',run['run_id'],'correct',injection,{})
+    assert review['reason']==injection
+    assert store.inspect_run('alpha',run['run_id'])['feedback'][0]['reason']==injection
